@@ -16,6 +16,16 @@ pipeline {
             }
         }
 
+        // 4. LOG IN TO DOCKER HUB
+        stage('Login to Docker Hub') {
+            steps {
+                // Uses the 'dockerhub-creds' credential you'll create in Jenkins
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+                    sh "docker login -u ${env.DOCKERHUB_USER} -p ${env.DOCKERHUB_PASS}"
+                }
+            }
+        }
+
         // 3. BUILD IMAGES SEQUENTIALLY
         stage('Build Docker Images') {
             steps {
@@ -36,15 +46,7 @@ pipeline {
             }
         }
 
-        // 4. LOG IN TO DOCKER HUB
-        stage('Login to Docker Hub') {
-            steps {
-                // Uses the 'dockerhub-creds' credential you'll create in Jenkins
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-                    sh "docker login -u ${env.DOCKERHUB_USER} -p ${env.DOCKERHUB_PASS}"
-                }
-            }
-        }
+        
 
         // 5. PUSH IMAGES SEQUENTIALLY
         stage('Push Images to Docker Hub') {
