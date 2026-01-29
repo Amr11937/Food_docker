@@ -16,7 +16,7 @@ pipeline {
             }
         }
 
-        // 3. LOG IN TO DOCKER HUB
+        //  LOG IN TO DOCKER HUB
         stage('Login to Docker Hub') {
             steps {
                 // Uses the 'dockerhub-creds' credential you'll create in Jenkins
