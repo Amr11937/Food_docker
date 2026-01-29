@@ -16,7 +16,7 @@ pipeline {
             }
         }
 
-        // 4. LOG IN TO DOCKER HUB
+        // 3. LOG IN TO DOCKER HUB
         stage('Login to Docker Hub') {
             steps {
                 // Uses the 'dockerhub-creds' credential you'll create in Jenkins
@@ -26,7 +26,7 @@ pipeline {
             }
         }
 
-        // 3. BUILD IMAGES SEQUENTIALLY
+        // 4. BUILD IMAGES SEQUENTIALLY
         stage('Build Docker Images') {
             steps {
                 echo "Building frontend image..."
