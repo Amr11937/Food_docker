@@ -1,7 +1,7 @@
 pipeline {
     agent any // Assumes Docker is installed on your Jenkins agent/node
 
-    // 1. SET YOUR DOCKER HUB USERNAME HERE
+    // 1. SET YOUR DOCKER HUB USERNAME HERE mm
     environment {
         DOCKERHUB_REPO = "amr11937" 
     }
