@@ -1,65 +1,99 @@
 pipeline {
-    agent any // Assumes Docker is installed on your Jenkins agent/node
+    agent any
 
-    // 1. SET YOUR DOCKER HUB USERNAME HERE
     environment {
-        DOCKERHUB_REPO = "amr11937" 
+        DOCKERHUB_REPO = "amr11937"
     }
-
-    // 2. TRIGGER BLOCK REMOVED
-    // This pipeline must be started manually
 
     stages {
         stage('Checkout Code') {
             steps {
-                checkout scm // Gets the code from GitHub
+                checkout scm
             }
         }
 
-        // 3. LOG IN TO DOCKER HUB
         stage('Login to Docker Hub') {
             steps {
-                // Uses the 'dockerhub-creds' credential you'll create in Jenkins
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-                    sh "docker login -u ${env.DOCKERHUB_USER} -p ${env.DOCKERHUB_PASS}"
+                    sh "echo \$DOCKERHUB_PASS | docker login -u \$DOCKERHUB_USER --password-stdin"
                 }
             }
         }
 
-        // 4. BUILD IMAGES SEQUENTIALLY
         stage('Build Docker Images') {
-            steps {
-                echo "Building frontend image..."
-                dir('frontend') { // Change to the 'frontend' directory
-                    sh "docker build -t ${env.DOCKERHUB_REPO}/frontend:${env.BUILD_NUMBER} ."
+            parallel {
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh "docker build -t ${DOCKERHUB_REPO}/frontend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/frontend:latest ."
+                        }
+                    }
                 }
-                
-                echo "Building admin image..."
-                dir('admin') { // Change to the 'admin' directory
-                    sh "docker build -t ${env.DOCKERHUB_REPO}/admin:${env.BUILD_NUMBER} ."
+                stage('Build Admin') {
+                    steps {
+                        dir('admin') {
+                            sh "docker build -t ${DOCKERHUB_REPO}/admin:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/admin:latest ."
+                        }
+                    }
                 }
-                
-                echo "Building backend image..."
-                dir('backend') { // Change to the 'backend' directory
-                    sh "docker build -t ${env.DOCKERHUB_REPO}/backend:${env.BUILD_NUMBER} ."
+                stage('Build Backend') {
+                    steps {
+                        dir('backend') {
+                            sh "docker build -t ${DOCKERHUB_REPO}/backend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/backend:latest ."
+                        }
+                    }
                 }
             }
         }
 
-        
-
-        // 5. PUSH IMAGES SEQUENTIALLY
         stage('Push Images to Docker Hub') {
             steps {
-                echo "Pushing frontend image..."
-                sh "docker push ${env.DOCKERHUB_REPO}/frontend:${env.BUILD_NUMBER}"
-
-                echo "Pushing admin image..."
-                sh "docker push ${env.DOCKERHUB_REPO}/admin:${env.BUILD_NUMBER}"
-
-                echo "Pushing backend image..."
-                sh "docker push ${env.DOCKERHUB_REPO}/backend:${env.BUILD_NUMBER}"
+                sh "docker push ${DOCKERHUB_REPO}/frontend:${BUILD_NUMBER}"
+                sh "docker push ${DOCKERHUB_REPO}/frontend:latest"
+                sh "docker push ${DOCKERHUB_REPO}/admin:${BUILD_NUMBER}"
+                sh "docker push ${DOCKERHUB_REPO}/admin:latest"
+                sh "docker push ${DOCKERHUB_REPO}/backend:${BUILD_NUMBER}"
+                sh "docker push ${DOCKERHUB_REPO}/backend:latest"
             }
+        }
+
+        stage('Deploy to App Server') {
+            steps {
+                withCredentials([string(credentialsId: 'app-server-ip', variable: 'APP_SERVER_IP')]) {
+                    sshagent(credentials: ['app-server-ssh-key']) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ec2-user@\$APP_SERVER_IP '
+                                cd /home/ec2-user/app
+
+                                # Pull latest images
+                                docker-compose pull
+
+                                # Restart all services
+                                docker-compose up -d --remove-orphans
+
+                                # Cleanup unused images
+                                docker image prune -f
+
+                                # Show running containers
+                                docker-compose ps
+                            '
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout || true'
+            cleanWs()
+        }
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
         }
     }
 }

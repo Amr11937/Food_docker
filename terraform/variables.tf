@@ -1,6 +1,6 @@
 variable "aws_region" {
   description = "AWS region to deploy resources"
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
 variable "project_name" {
@@ -11,6 +11,11 @@ variable "project_name" {
 variable "environment" {
   description = "Environment (dev, staging, prod)"
   default     = "dev"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for EC2 access"
+  type        = string
 }
 
 variable "dockerhub_username" {
@@ -44,5 +49,20 @@ variable "jwt_secret" {
 variable "availability_zones" {
   description = "Availability zones"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["ap-south-1a", "ap-south-1b"]
+}
+
+variable "app_instance_type" {
+  description = "EC2 instance type for application server"
+  default     = "t3.medium"
+}
+
+variable "jenkins_instance_type" {
+  description = "EC2 instance type for Jenkins server"
+  default     = "t3.medium"
+}
+
+variable "allowed_ssh_cidr" {
+  description = "CIDR block allowed for SSH access"
+  default     = "0.0.0.0/0"  # Restrict this to your IP in production
 }

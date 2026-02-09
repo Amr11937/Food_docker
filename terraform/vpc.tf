@@ -31,18 +31,6 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Private Subnets
-resource "aws_subnet" "private" {
-  count             = 2
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.${count.index + 10}.0/24"
-  availability_zone = var.availability_zones[count.index]
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-private-${count.index + 1}"
-  }
-}
-
 # Route Table for Public Subnets
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
