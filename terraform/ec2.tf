@@ -165,7 +165,7 @@ resource "aws_instance" "app" {
                     - "4000:4000"
                   environment:
                     - PORT=4000
-                    - MONGODB_URI=mongodb://${var.mongodb_username}:${var.mongodb_password}@mongo:27017/fooddel?authSource=admin
+                    - MONGODB_URI=mongodb://${var.mongodb_username}:${urlencode(var.mongodb_password)}@mongo:27017/fooddel?authSource=admin
                     - JWT_SECRET=${var.jwt_secret}
                   depends_on:
                     - mongo
