@@ -144,7 +144,7 @@ resource "aws_instance" "app" {
                   ports:
                     - "5173:5173"
                   environment:
-                    - VITE_API_URL=http://localhost:4000
+                    - VITE_API_URL=http://${aws_eip.app.public_ip}:4000
                   depends_on:
                     - backend
                   restart: always
@@ -154,7 +154,7 @@ resource "aws_instance" "app" {
                   ports:
                     - "5174:5174"
                   environment:
-                    - VITE_API_URL=http://localhost:4000
+                    - VITE_API_URL=http://${aws_eip.app.public_ip}:4000
                   depends_on:
                     - backend
                   restart: always
