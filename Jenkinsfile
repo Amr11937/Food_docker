@@ -21,27 +21,15 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            parallel {
-                stage('Build Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh "docker build -t ${DOCKERHUB_REPO}/frontend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/frontend:latest ."
-                        }
-                    }
+            steps {
+                dir('backend') {
+                    sh "docker build -t ${DOCKERHUB_REPO}/backend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/backend:latest ."
                 }
-                stage('Build Admin') {
-                    steps {
-                        dir('admin') {
-                            sh "docker build -t ${DOCKERHUB_REPO}/admin:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/admin:latest ."
-                        }
-                    }
+                dir('frontend') {
+                    sh "docker build -t ${DOCKERHUB_REPO}/frontend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/frontend:latest ."
                 }
-                stage('Build Backend') {
-                    steps {
-                        dir('backend') {
-                            sh "docker build -t ${DOCKERHUB_REPO}/backend:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/backend:latest ."
-                        }
-                    }
+                dir('admin') {
+                    sh "docker build -t ${DOCKERHUB_REPO}/admin:${BUILD_NUMBER} -t ${DOCKERHUB_REPO}/admin:latest ."
                 }
             }
         }
