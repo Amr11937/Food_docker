@@ -66,3 +66,9 @@ variable "allowed_ssh_cidr" {
   description = "CIDR block allowed for SSH access"
   default     = "0.0.0.0/0"  # Restrict this to your IP in production
 }
+
+variable "private_key_path" {
+  description = "Path to the private SSH key file"
+  type        = string
+  default     = "~/.ssh/food-delivery-key"
+}

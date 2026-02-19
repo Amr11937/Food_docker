@@ -134,60 +134,57 @@ resource "aws_instance" "app" {
               mkdir -p /home/ec2-user/app
               chown ec2-user:ec2-user /home/ec2-user/app
 
-              # Create docker-compose.prod.yml
+              # Create docker-compose.yml with placeholder (will be updated later)
               cat > /home/ec2-user/app/docker-compose.yml <<'COMPOSEFILE'
-              version: "3.9"
+version: "3.9"
 
-              services:
-                frontend:
-                  image: ${var.dockerhub_username}/frontend:latest
-                  ports:
-                    - "5173:5173"
-                  environment:
-                    - VITE_API_URL=http://${aws_eip.app.public_ip}:4000
-                  depends_on:
-                    - backend
-                  restart: always
+services:
+  frontend:
+    image: ${var.dockerhub_username}/frontend:latest
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://PLACEHOLDER_IP:4000
+    depends_on:
+      - backend
+    restart: always
 
-                admin:
-                  image: ${var.dockerhub_username}/admin:latest
-                  ports:
-                    - "5174:5174"
-                  environment:
-                    - VITE_API_URL=http://${aws_eip.app.public_ip}:4000
-                  depends_on:
-                    - backend
-                  restart: always
+  admin:
+    image: ${var.dockerhub_username}/admin:latest
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_API_URL=http://PLACEHOLDER_IP:4000
+    depends_on:
+      - backend
+    restart: always
 
-                backend:
-                  image: ${var.dockerhub_username}/backend:latest
-                  ports:
-                    - "4000:4000"
-                  environment:
-                    - PORT=4000
-                    - MONGODB_URI=mongodb://${var.mongodb_username}:${urlencode(var.mongodb_password)}@mongo:27017/fooddel?authSource=admin
-                    - JWT_SECRET=${var.jwt_secret}
-                  depends_on:
-                    - mongo
-                  restart: always
+  backend:
+    image: ${var.dockerhub_username}/backend:latest
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - MONGODB_URI=mongodb://${var.mongodb_username}:${urlencode(var.mongodb_password)}@mongo:27017/fooddel?authSource=admin
+      - JWT_SECRET=${var.jwt_secret}
+    depends_on:
+      - mongo
+    restart: always
 
-                mongo:
-                  image: mongo:6
-                  ports:
-                    - "27017:27017"
-                  environment:
-                    - MONGO_INITDB_ROOT_USERNAME=${var.mongodb_username}
-                    - MONGO_INITDB_ROOT_PASSWORD=${var.mongodb_password}
-                  volumes:
-                    - mongo_data:/data/db
-                  restart: always
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${var.mongodb_username}
+      - MONGO_INITDB_ROOT_PASSWORD=${var.mongodb_password}
+    volumes:
+      - mongo_data:/data/db
+    restart: always
 
-              volumes:
-                mongo_data:
-              COMPOSEFILE
-
-              # Fix indentation (heredoc adds spaces)
-              sed -i 's/^              //' /home/ec2-user/app/docker-compose.yml
+volumes:
+  mongo_data:
+COMPOSEFILE
 
               chown -R ec2-user:ec2-user /home/ec2-user/app
 
@@ -203,11 +200,6 @@ resource "aws_instance" "app" {
 
               chmod +x /home/ec2-user/deploy.sh
               chown ec2-user:ec2-user /home/ec2-user/deploy.sh
-
-              # Pull and start containers
-              cd /home/ec2-user/app
-              docker compose pull 2>/dev/null || true
-              docker compose up -d 2>/dev/null || true
               EOF
 
   tags = {
@@ -231,5 +223,26 @@ resource "aws_eip" "app" {
 
   tags = {
     Name = "${var.project_name}-${var.environment}-app-eip"
+  }
+}
+
+# Update docker-compose.yml with actual EIP after both are created
+resource "null_resource" "update_compose" {
+  depends_on = [aws_eip.app, aws_instance.app]
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = file(var.private_key_path)
+    host        = aws_eip.app.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 30",
+      "sed -i 's/PLACEHOLDER_IP/${aws_eip.app.public_ip}/g' /home/ec2-user/app/docker-compose.yml",
+      "cd /home/ec2-user/app && docker compose pull 2>/dev/null || true",
+      "cd /home/ec2-user/app && docker compose up -d 2>/dev/null || true"
+    ]
   }
 }
